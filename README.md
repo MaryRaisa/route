@@ -1,7 +1,8 @@
 # SMART QR GUIDE AIRPORT ✈️
 ### A Smart QR-Based Airport Navigation & Passenger Guidance System
 
-🌐 **Live Deployed Application:** [https://maryraisap.pythonanywhere.com/](https://maryraisap.pythonanywhere.com/)
+🌐 **Live Deployed Application (Render):** [https://smart-qr-airport.onrender.com](https://smart-qr-airport.onrender.com)  
+*(Backup PythonAnywhere: [https://maryraisap.pythonanywhere.com/](https://maryraisap.pythonanywhere.com/))*
 
 A complete full-stack web application designed for modern airport terminals. The system enables passengers to navigate seamlessly from terminal entrance to boarding gate using QR codes scanned via their smartphones, with interactive indoor maps, Dijkstra shortest-path calculations, multilingual guidance (English, Tamil, Hindi), voice directions, gate change notifications, and automatic wrong-turn route correction.
 
