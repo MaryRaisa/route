@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+
+{% block title %}{{ get_text('admin_panel') }} - {{ get_text('app_title') }}{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Top Welcome Header -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+            <span class="badge bg-warning text-dark px-3 py-1 fw-bold text-uppercase mb-1">Airport Staff Portal</span>
+            <h2 class="fw-bold text-navy mb-0">
+                <i class="bi bi-speedometer2 text-primary me-2"></i>{{ get_text('admin_panel') }}
+            </h2>
+        </div>
+
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('manage_flights') }}" class="btn btn-outline-primary">
+                <i class="bi bi-airplane me-1"></i> Manage Flights
+            </a>
+            <a href="{{ url_for('manage_locations') }}" class="btn btn-outline-primary">
+                <i class="bi bi-geo-alt me-1"></i> Airport Locations
+            </a>
+            <a href="{{ url_for('generate_qr_page') }}" class="btn btn-airport">
+                <i class="bi bi-qr-code me-1"></i> QR Management
+            </a>
+        </div>
+    </div>
+
+    <!-- Statistics Overview Cards -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-3 col-sm-6">
+            <div class="airport-card p-3">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted small text-uppercase fw-bold">Airport Locations</span>
+                        <h2 class="fw-bold text-navy mb-0 mt-1">{{ total_locations }}</h2>
+                        <span class="small text-success"><i class="bi bi-check-circle"></i> Terminal 2 Nodes</span>
+                    </div>
+                    <div class="tile-icon-box mb-0" style="width: 50px; height: 50px; font-size: 1.4rem;">
+                        <i class="bi bi-geo-alt-fill"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-sm-6">
+            <div class="airport-card p-3">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted small text-uppercase fw-bold">Active QR Codes</span>
+                        <h2 class="fw-bold text-primary mb-0 mt-1">{{ total_qrs }}</h2>
+                        <span class="small text-info"><i class="bi bi-qr-code"></i> Printable PNGs</span>
+                    </div>
+                    <div class="tile-icon-box mb-0" style="width: 50px; height: 50px; font-size: 1.4rem;">
+                        <i class="bi bi-qr-code-scan"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-sm-6">
+            <div class="airport-card p-3">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted small text-uppercase fw-bold">Active Flights</span>
+                        <h2 class="fw-bold text-navy mb-0 mt-1">{{ total_flights }}</h2>
+                        <span class="small text-primary"><i class="bi bi-clock-history"></i> Live Departures</span>
+                    </div>
+                    <div class="tile-icon-box mb-0" style="width: 50px; height: 50px; font-size: 1.4rem;">
+                        <i class="bi bi-airplane-fill"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-sm-6">
+            <div class="airport-card p-3">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted small text-uppercase fw-bold">Navigations Routed</span>
+                        <h2 class="fw-bold text-success mb-0 mt-1">{{ total_routes_navigated }}</h2>
+                        <span class="small text-muted"><i class="bi bi-compass"></i> Dijkstra Runs</span>
+                    </div>
+                    <div class="tile-icon-box mb-0" style="width: 50px; height: 50px; font-size: 1.4rem;">
+                        <i class="bi bi-signpost-2-fill"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Flights & Quick Gate Change Management -->
+    <div class="airport-card mb-4">
+        <div class="airport-card-header">
+            <h5 class="card-title-main">
+                <i class="bi bi-broadcast text-danger"></i> Flight Operations & Instant Gate Change Control
+            </h5>
+            <a href="{{ url_for('manage_flights') }}" class="btn btn-sm btn-outline-primary">
+                Manage All Flights <i class="bi bi-chevron-right"></i>
+            </a>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Flight</th>
+                        <th>Airline</th>
+                        <th>Destination</th>
+                        <th>Dep Time</th>
+                        <th>Gate Closes</th>
+                        <th>Check-in</th>
+                        <th>Security</th>
+                        <th>Boarding Gate</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for f in recent_flights %}
+                    <tr>
+                        <td><span class="flight-number-pill" style="font-size: 0.9rem; padding: 0.2rem 0.6rem;">{{ f.flight_number }}</span></td>
+                        <td>{{ f.airline }}</td>
+                        <td><strong>{{ f.destination_city }}</strong></td>
+                        <td>{{ f.departure_time }}</td>
+                        <td><span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-clock me-1"></i>{{ f.boarding_closes or '-' }}</span></td>
+                        <td><span class="badge bg-light text-dark border">{{ f.checkin_counter }}</span></td>
+                        <td><span class="badge bg-light text-dark border">{{ f.security_checkpoint }}</span></td>
+                        <td><span class="badge bg-primary fs-6">{{ f.boarding_gate }}</span></td>
+                        <td>
+                            <span class="badge badge-status {% if f.status == 'On Time' %}status-on-time{% elif f.status == 'Boarding' %}status-boarding{% elif f.status == 'Gate Changed' %}status-gate-changed{% else %}status-delayed{% endif %}">
+                                {{ f.status }}
+                            </span>
+                        </td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-outline-warning fw-bold text-dark" data-bs-toggle="modal" data-bs-target="#gateChangeModal{{ f.id }}">
+                                <i class="bi bi-shuffle"></i> Change Gate
+                            </button>
+
+                            <!-- Gate Change Modal -->
+                            <div class="modal fade" id="gateChangeModal{{ f.id }}" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <form action="{{ url_for('edit_flight', flight_id=f.id) }}" method="POST">
+                                            <div class="modal-header bg-navy text-white" style="background-color: var(--primary-navy);">
+                                                <h5 class="modal-title text-white">Change Boarding Gate - {{ f.flight_number }}</h5>
+                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <p class="small text-muted mb-3">
+                                                    Changing the gate will immediately broadcast live gate change alerts to passengers navigating on this flight!
+                                                </p>
+                                                <input type="hidden" name="airline" value="{{ f.airline }}">
+                                                <input type="hidden" name="destination_city" value="{{ f.destination_city }}">
+                                                <input type="hidden" name="departure_time" value="{{ f.departure_time }}">
+                                                <input type="hidden" name="boarding_time" value="{{ f.boarding_time or '' }}">
+                                                <input type="hidden" name="boarding_closes" value="{{ f.boarding_closes or '' }}">
+                                                <input type="hidden" name="checkin_counter" value="{{ f.checkin_counter }}">
+                                                <input type="hidden" name="security_checkpoint" value="{{ f.security_checkpoint }}">
+
+                                                <div class="mb-3">
+                                                    <label class="form-label fw-bold">Select New Boarding Gate:</label>
+                                                    <select name="boarding_gate" class="form-select fw-bold">
+                                                        <option value="Boarding Gate A1" {% if f.boarding_gate == 'Boarding Gate A1' %}selected{% endif %}>Boarding Gate A1</option>
+                                                        <option value="Boarding Gate A5" {% if f.boarding_gate == 'Boarding Gate A5' %}selected{% endif %}>Boarding Gate A5</option>
+                                                        <option value="Boarding Gate B1" {% if f.boarding_gate == 'Boarding Gate B1' %}selected{% endif %}>Boarding Gate B1</option>
+                                                        <option value="Boarding Gate B5" {% if f.boarding_gate == 'Boarding Gate B5' %}selected{% endif %}>Boarding Gate B5</option>
+                                                    </select>
+                                                </div>
+
+                                                <div class="mb-3">
+                                                    <label class="form-label fw-bold">Flight Status:</label>
+                                                    <select name="status" class="form-select">
+                                                        <option value="Gate Changed" selected>Gate Changed</option>
+                                                        <option value="Boarding">Boarding</option>
+                                                        <option value="Delayed">Delayed</option>
+                                                        <option value="On Time">On Time</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                <button type="submit" class="btn btn-warning fw-bold text-dark">
+                                                    <i class="bi bi-broadcast"></i> Broadcast Gate Change
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Recent Passenger Navigation History -->
+    <div class="airport-card">
+        <div class="airport-card-header">
+            <h5 class="card-title-main">
+                <i class="bi bi-clock-history text-primary"></i> Recent Passenger Wayfinding Logs
+            </h5>
+            <span class="badge bg-secondary">System Audit</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-sm table-striped align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Flight</th>
+                        <th>Origin Checkpoint</th>
+                        <th>Destination</th>
+                        <th>Distance (m)</th>
+                        <th>Walking Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for h in recent_activity %}
+                    <tr>
+                        <td class="small text-muted">{{ h.created_at }}</td>
+                        <td><span class="badge bg-dark">{{ h.flight_number }}</span></td>
+                        <td>{{ h.source_location }}</td>
+                        <td><strong class="text-navy">{{ h.destination_location }}</strong></td>
+                        <td>{{ h.distance }} m</td>
+                        <td>{{ h.estimated_time }} mins</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center py-3 text-muted">No navigation logs recorded yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

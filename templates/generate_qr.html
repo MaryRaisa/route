@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}QR Code Generator & Gallery - {{ get_text('app_title') }}{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Header -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+            <h2 class="fw-bold text-navy mb-1">
+                <i class="bi bi-qr-code text-primary me-2"></i>Airport Location QR Code Center
+            </h2>
+            <p class="text-muted mb-0">High-resolution, airport-branded QR codes for physical printing on terminal kiosks, pillars, and gates.</p>
+        </div>
+
+        <div class="d-flex gap-2">
+            {% if session.get('admin_user') %}
+            <form action="{{ url_for('regenerate_all_qrs') }}" method="POST" class="d-inline">
+                <button type="submit" class="btn btn-airport" onclick="return confirm('Regenerate all QR codes with current server host URL?');">
+                    <i class="bi bi-arrow-repeat me-1"></i> Regenerate All QR Codes
+                </button>
+            </form>
+            {% endif %}
+            <button class="btn btn-outline-secondary" onclick="window.print()">
+                <i class="bi bi-printer me-1"></i> Print QR Badges
+            </button>
+            {% if session.get('admin_user') %}
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i> Dashboard
+            </a>
+            {% else %}
+            <a href="{{ url_for('qr_scanner') }}" class="btn btn-outline-primary fw-bold">
+                <i class="bi bi-camera me-1"></i> Open Scanner
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- QR Codes Grid Gallery -->
+    <div class="row g-4">
+        {% for qr in qrs %}
+        <div class="col-xl-3 col-lg-4 col-md-6">
+            <div class="airport-card text-center p-3 h-100 d-flex flex-column justify-content-between">
+                <div>
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="badge bg-light text-navy border fw-bold">ID #{{ qr.id }}</span>
+                        <span class="badge bg-primary">{{ qr.location_type }}</span>
+                    </div>
+
+                    <h5 class="fw-bold text-navy mb-1">{{ qr.location_name }}</h5>
+                    <p class="small text-muted mb-3">{{ qr.description or 'Airport Checkpoint' }}</p>
+
+                    <!-- QR Code Image Preview -->
+                    <div class="p-2 bg-light rounded-3 mb-3 border d-inline-block shadow-sm">
+                        {% if qr.qr_image_path %}
+                            <img src="{{ url_for('static', filename=qr.qr_image_path) }}" alt="{{ qr.location_name }}" class="img-fluid" style="max-width: 190px; border-radius: 8px;">
+                        {% else %}
+                            <div class="text-danger p-4">QR Not Generated</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2 mt-2">
+                    <a href="{{ url_for('download_qr', location_id=qr.id) }}" class="btn btn-sm btn-outline-primary flex-grow-1 fw-bold">
+                        <i class="bi bi-download me-1"></i> Download PNG
+                    </a>
+                    <a href="{{ url_for('navigation_view', from=qr.id) }}" target="_blank" class="btn btn-sm btn-outline-secondary" title="Test Navigation URL">
+                        <i class="bi bi-box-arrow-up-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

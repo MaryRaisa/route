@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+
+{% block title %}{{ get_text('passenger_dash') }} - {{ get_text('app_title') }}{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Header with Welcome & Localization -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+            <h2 class="fw-bold text-navy mb-1">
+                <i class="bi bi-person-circle text-primary me-2"></i>{{ get_text('passenger_dash') }}
+            </h2>
+            <p class="text-muted mb-0">
+                {{ get_text('welcome') }}
+                {% if request.args.get('passenger_name') %}
+                    , <strong>{{ request.args.get('passenger_name') }}</strong>!
+                {% endif %}
+            </p>
+        </div>
+
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('qr_scanner') }}" class="btn btn-outline-primary fw-bold">
+                <i class="bi bi-qr-code-scan me-1"></i> {{ get_text('scan_qr_prompt') }}
+            </a>
+            <a href="{{ url_for('navigation_view') }}" class="btn btn-airport">
+                <i class="bi bi-map me-1"></i> {{ get_text('airport_map') }}
+            </a>
+        </div>
+    </div>
+
+    <!-- Active Location Banner -->
+    <div class="card p-3 mb-4 border-0 shadow-sm" style="background: linear-gradient(135deg, #0B192C 0%, #1E3E62 100%); color: white; border-radius: 14px;">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="bg-primary p-3 rounded-circle text-white d-flex align-items-center justify-content-center" style="width: 52px; height: 52px; background-color: var(--aero-blue) !important;">
+                    <i class="bi bi-geo-alt-fill fs-4"></i>
+                </div>
+                <div>
+                    <span class="text-white-50 small text-uppercase fw-bold">{{ get_text('current_location') }}</span>
+                    <h4 class="mb-0 fw-bold">
+                        {% if current_location %}
+                            {{ get_loc_name(current_location.location_name) }}
+                        {% else %}
+                            {{ get_loc_name('Main Entrance') }} <span class="badge bg-secondary fs-6 ms-2">Default Starting Point</span>
+                        {% endif %}
+                    </h4>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('qr_scanner') }}" class="btn btn-outline-light btn-sm fw-bold">
+                    <i class="bi bi-camera me-1"></i> Scan Checkpoint QR
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Flight Search / Selection Bar -->
+    <div class="card p-3 mb-4 shadow-sm border-0" style="border-radius: 14px;">
+        <form action="{{ url_for('passenger_dashboard') }}" method="GET" class="row g-2 align-items-center">
+            <div class="col-md-5">
+                <label class="form-label small fw-bold text-muted mb-1">{{ get_text('enter_flight') }}</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light"><i class="bi bi-airplane text-primary"></i></span>
+                    <input type="text" name="flight" class="form-control fw-bold" placeholder="e.g. AI202" value="{{ flight_num }}" style="text-transform: uppercase;" required>
+                    <button class="btn btn-primary" type="submit">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="col-md-7">
+                <label class="form-label small fw-bold text-muted mb-1">Quick Select Sample Flights:</label>
+                <div class="d-flex flex-wrap gap-2">
+                    {% for f in all_flights %}
+                    <a href="{{ url_for('passenger_dashboard', flight=f.flight_number) }}" class="btn btn-sm {% if f.flight_number == flight_num %}btn-primary fw-bold{% else %}btn-outline-secondary{% endif %}">
+                        {{ f.flight_number }} ({{ f.destination_city.split(' ')[0] }})
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </form>
+    </div>
+
+    {% if flight_info %}
+        <!-- Gate Change Alert Banner if applicable -->
+        {% if flight_info.status == 'Gate Changed' %}
+        <div class="alert alert-gate-change d-flex align-items-center justify-content-between flex-wrap gap-3" role="alert">
+            <div class="d-flex align-items-center gap-3">
+                <i class="bi bi-exclamation-triangle-fill fs-2 text-warning"></i>
+                <div>
+                    <h5 class="alert-heading fw-bold mb-1">
+                        {{ get_text('gate_changed_alert', flight=flight_info.flight_number, gate=flight_info.boarding_gate) }}
+                    </h5>
+                    <p class="mb-0 small">
+                        Please proceed directly to the new boarding gate. Your navigation path will automatically update.
+                    </p>
+                </div>
+            </div>
+            <a href="{{ url_for('navigation_view', flight=flight_info.flight_number, to=11) }}" class="btn btn-warning fw-bold text-dark">
+                <i class="bi bi-compass"></i> Route to New Gate
+            </a>
+        </div>
+        {% endif %}
+
+        <!-- Flight Journey Timeline & Key Checkpoints -->
+        <div class="row g-4 mb-4">
+            <!-- Flight Overview Card -->
+            <div class="col-lg-4">
+                <div class="airport-card">
+                    <div class="airport-card-header">
+                        <h5 class="card-title-main">
+                            <i class="bi bi-ticket-detailed-fill text-primary"></i> Flight Details
+                        </h5>
+                        <span class="badge badge-status {% if flight_info.status == 'On Time' %}status-on-time{% elif flight_info.status == 'Boarding' %}status-boarding{% elif flight_info.status == 'Gate Changed' %}status-gate-changed{% else %}status-delayed{% endif %}">
+                            {{ flight_info.status }}
+                        </span>
+                    </div>
+
+                    <div class="text-center py-3 bg-light rounded-3 mb-3">
+                        <div class="display-6 fw-bold text-navy">{{ flight_info.flight_number }}</div>
+                        <div class="fw-semibold text-primary">{{ flight_info.airline }}</div>
+                        <div class="small text-muted mt-1">To: <strong>{{ flight_info.destination_city }}</strong></div>
+                        <div class="small text-muted">Departure: <strong>{{ flight_info.departure_time }}</strong></div>
+                        <div class="mt-2 pt-2 border-top">
+                            <div class="d-flex justify-content-between px-2 small">
+                                <span class="text-muted">{{ get_text('boarding_time') }}:</span>
+                                <strong class="text-navy">{{ flight_info.boarding_time or '40m prior' }}</strong>
+                            </div>
+                            <div class="d-flex justify-content-between px-2 small mt-1">
+                                <span class="text-danger fw-bold"><i class="bi bi-clock-fill me-1"></i>{{ get_text('boarding_closes') }}:</span>
+                                <strong class="text-danger">{{ flight_info.boarding_closes or '20m prior' }}</strong>
+                            </div>
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle mt-2 w-100" style="font-size: 0.72rem;">
+                                {{ get_text('gate_closing_notice') }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('navigation_view', flight=flight_info.flight_number) }}" class="btn btn-airport justify-content-center">
+                            <i class="bi bi-compass-fill"></i> Full Journey Navigation
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3 Step Passenger Flow: Check-in -> Security -> Gate -->
+            <div class="col-lg-8">
+                <div class="airport-card">
+                    <div class="airport-card-header">
+                        <h5 class="card-title-main">
+                            <i class="bi bi-signpost-2-fill text-primary"></i> Recommended Passenger Journey
+                        </h5>
+                        <span class="text-muted small">Sequential Milestones</span>
+                    </div>
+
+                    <div class="row g-3">
+                        <!-- 1. Check-in Counter -->
+                        <div class="col-md-4">
+                            <div class="p-3 border rounded-3 bg-white h-100 d-flex flex-column justify-content-between shadow-sm">
+                                <div>
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <span class="badge bg-secondary">STEP 1</span>
+                                        <i class="bi bi-luggage text-primary fs-4"></i>
+                                    </div>
+                                    <h6 class="fw-bold text-navy mb-1">{{ get_text('checkin_counter') }}</h6>
+                                    <div class="fs-5 fw-bold text-primary mb-2">{{ flight_info.checkin_counter }}</div>
+                                    <p class="small text-muted mb-3">Baggage drop & boarding pass verification</p>
+                                </div>
+                                <a href="{{ url_for('navigation_view', from=(current_location.id if current_location else 1), to=3, flight=flight_info.flight_number) }}" class="btn btn-sm btn-outline-primary w-100 fw-bold">
+                                    <i class="bi bi-cursor-fill me-1"></i> {{ get_text('navigate_to_checkin') }}
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- 2. Security Checkpoint -->
+                        <div class="col-md-4">
+                            <div class="p-3 border rounded-3 bg-white h-100 d-flex flex-column justify-content-between shadow-sm">
+                                <div>
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <span class="badge bg-secondary">STEP 2</span>
+                                        <i class="bi bi-shield-lock-fill text-warning fs-4"></i>
+                                    </div>
+                                    <h6 class="fw-bold text-navy mb-1">{{ get_text('security_checkpoint') }}</h6>
+                                    <div class="fs-5 fw-bold text-warning mb-2">{{ flight_info.security_checkpoint }}</div>
+                                    <p class="small text-muted mb-3">Hand baggage scan & metal detection</p>
+                                </div>
+                                <a href="{{ url_for('navigation_view', from=(current_location.id if current_location else 1), to=6, flight=flight_info.flight_number) }}" class="btn btn-sm btn-outline-warning w-100 fw-bold text-dark">
+                                    <i class="bi bi-cursor-fill me-1"></i> {{ get_text('navigate_to_security') }}
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- 3. Boarding Gate -->
+                        <div class="col-md-4">
+                            <div class="p-3 border rounded-3 bg-white h-100 d-flex flex-column justify-content-between shadow-sm border-primary">
+                                <div>
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <span class="badge bg-success">STEP 3</span>
+                                        <i class="bi bi-airplane-engines-fill text-success fs-4"></i>
+                                    </div>
+                                    <h6 class="fw-bold text-navy mb-1">{{ get_text('boarding_gate') }}</h6>
+                                    <div class="fs-5 fw-bold text-success mb-1">{{ flight_info.boarding_gate }}</div>
+                                    <div class="p-1 px-2 rounded bg-danger-subtle text-danger small mb-2 d-flex justify-content-between align-items-center">
+                                        <span class="fw-bold" style="font-size: 0.76rem;">{{ get_text('boarding_closes') }}:</span>
+                                        <span class="fw-bold">{{ flight_info.boarding_closes or '20m prior' }}</span>
+                                    </div>
+                                    <p class="small text-muted mb-3" style="font-size: 0.76rem;">{{ get_text('gate_closing_notice') }}</p>
+                                </div>
+                                <a href="{{ url_for('navigation_view', from=(current_location.id if current_location else 1), to=12, flight=flight_info.flight_number) }}" class="btn btn-sm btn-success w-100 fw-bold">
+                                    <i class="bi bi-cursor-fill me-1"></i> {{ get_text('navigate_to_gate') }}
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <!-- Prompt to choose or scan flight -->
+        <div class="alert alert-info d-flex align-items-center gap-3" role="alert">
+            <i class="bi bi-info-circle-fill fs-3"></i>
+            <div>
+                <strong>No flight selected yet.</strong> Please enter your flight number above (e.g. <code>AI202</code>, <code>6E305</code>) or scan your ticket QR code to load your personalized gate and check-in route.
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Airport Facilities Quick Navigator -->
+    <div class="airport-card">
+        <div class="airport-card-header">
+            <h5 class="card-title-main">
+                <i class="bi bi-grid-fill text-primary"></i> {{ get_text('facilities') }}
+            </h5>
+            <span class="text-muted small">Find immediate amenities near you</span>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-lg-3 col-sm-6">
+                <div class="p-3 border rounded-3 bg-light d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="fw-bold text-navy"><i class="bi bi-cup-hot-fill text-danger me-2"></i> Food Court</div>
+                        <div class="small text-muted">Restaurants, cafes & dining</div>
+                    </div>
+                    <a href="{{ url_for('navigation_view', from=(current_location.id if current_location else 1), to=9) }}" class="btn btn-sm btn-primary">
+                        Go <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-sm-6">
+                <div class="p-3 border rounded-3 bg-light d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="fw-bold text-navy"><i class="bi bi-badge-wc-fill text-info me-2"></i> Restrooms</div>
+                        <div class="small text-muted">Clean restrooms & baby care</div>
+                    </div>
+                    <a href="{{ url_for('navigation_view', from=(current_location.id if current_location else 1), to=5) }}" class="btn btn-sm btn-primary">
+                        Go <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-sm-6">
+                <div class="p-3 border rounded-3 bg-light d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="fw-bold text-navy"><i class="bi bi-shop text-warning me-2"></i> Waiting Lounge</div>
+                        <div class="small text-muted">Duty-free & relaxation seating</div>
+                    </div>
+                    <a href="{{ url_for('navigation_view', from=(current_location.id if current_location else 1), to=8) }}" class="btn btn-sm btn-primary">
+                        Go <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-sm-6">
+                <div class="p-3 border rounded-3 bg-light d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="fw-bold text-navy"><i class="bi bi-luggage-fill text-secondary me-2"></i> Baggage Claim</div>
+                        <div class="small text-muted">Arrivals baggage carousels 1-4</div>
+                    </div>
+                    <a href="{{ url_for('navigation_view', from=(current_location.id if current_location else 1), to=15) }}" class="btn btn-sm btn-primary">
+                        Go <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

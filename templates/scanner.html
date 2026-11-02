@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+
+{% block title %}{{ get_text('qr_scanner') }} - {{ get_text('app_title') }}{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Header -->
+            <div class="text-center mb-4">
+                <span class="badge bg-primary px-3 py-2 text-uppercase fw-bold mb-2">Live Camera Scanner</span>
+                <h2 class="fw-bold text-navy">{{ get_text('scan_qr_prompt') }}</h2>
+                <p class="text-muted">
+                    Point your device camera at any airport QR code located at entrance gates, information desks, security zones, or pillars.
+                </p>
+            </div>
+
+            <!-- Scanned Location Result Banner if passed via query -->
+            {% if scanned_loc_id %}
+            <div class="card p-3 mb-4 border-primary shadow-sm bg-light">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <div class="d-flex align-items-center gap-3">
+                        <i class="bi bi-check-circle-fill text-success fs-1"></i>
+                        <div>
+                            <span class="badge bg-success mb-1">QR CODE IDENTIFIED</span>
+                            <h4 class="mb-0 fw-bold text-navy">
+                                {% for loc in locations if loc.id == scanned_loc_id %}
+                                    {{ get_loc_name(loc.location_name) }} ({{ loc.location_type }})
+                                {% endfor %}
+                            </h4>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('navigation_view', from=scanned_loc_id) }}" class="btn btn-airport fw-bold">
+                        <i class="bi bi-compass"></i> Start Navigation from Here
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Camera Viewport Box -->
+            <div class="airport-card mb-4">
+                <div class="airport-card-header">
+                    <h5 class="card-title-main">
+                        <i class="bi bi-camera-video-fill text-primary"></i> Live Camera Feed
+                    </h5>
+                    <div class="d-flex gap-2">
+                        <button id="btn-toggle-scanner" class="btn btn-sm btn-outline-primary fw-bold" onclick="restartScanner()">
+                            <i class="bi bi-arrow-clockwise"></i> Restart Camera
+                        </button>
+                    </div>
+                </div>
+
+                <div class="scanner-viewport-box mb-3">
+                    <div id="qr-reader"></div>
+                    <div class="scanner-reticle-overlay"></div>
+                </div>
+
+                <div id="scanner-status" class="text-center small text-muted">
+                    <i class="bi bi-info-circle me-1"></i> Position the airport QR code inside the frame to scan.
+                </div>
+            </div>
+
+            <!-- Manual Location Selector (Fallback if Camera is Unavailable) -->
+            <div class="airport-card mb-4">
+                <div class="airport-card-header">
+                    <h5 class="card-title-main">
+                        <i class="bi bi-geo-alt text-primary"></i> {{ get_text('manual_location_prompt') }}
+                    </h5>
+                    <span class="badge bg-secondary">Camera Fallback</span>
+                </div>
+
+                <p class="small text-muted mb-3">
+                    If your device camera is disabled or permissions are blocked, select your current airport checkpoint manually below:
+                </p>
+
+                <form action="{{ url_for('navigation_view') }}" method="GET" class="row g-3">
+                    <div class="col-md-5">
+                        <label class="form-label small fw-bold text-muted">{{ get_text('current_location') }}</label>
+                        <select name="from" class="form-select fw-bold" id="manual-from-select">
+                            {% for loc in locations %}
+                                <option value="{{ loc.id }}" {% if scanned_loc_id == loc.id or (not scanned_loc_id and loc.location_name == 'Main Entrance') %}selected{% endif %}>
+                                    {{ get_loc_name(loc.location_name) }} ({{ loc.location_type }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted">{{ get_text('flight_number') }}</label>
+                        <input type="text" name="flight" class="form-control" placeholder="Optional (e.g. AI202)">
+                    </div>
+
+                    <div class="col-md-3 d-grid">
+                        <label class="form-label small text-transparent mb-1 d-none d-md-block">Action</label>
+                        <button type="submit" class="btn btn-airport justify-content-center">
+                            <i class="bi bi-compass"></i> Navigate
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Visual Scannable Airport QR Codes Section -->
+            <div class="airport-card mb-4">
+                <div class="airport-card-header">
+                    <h5 class="card-title-main">
+                        <i class="bi bi-qr-code text-primary"></i> Scannable Airport QR Codes
+                    </h5>
+                    <a href="{{ url_for('generate_qr_page') }}" class="btn btn-sm btn-outline-primary fw-bold">
+                        View All 16 QRs <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+
+                <p class="small text-muted mb-3">
+                    Point your device camera at any of the physical airport checkpoint QR badges below:
+                </p>
+
+                <!-- Grid of key airport checkpoints with scannable QR images -->
+                <div class="row g-3">
+                    <div class="col-md-4 col-sm-6 text-center">
+                        <div class="p-3 border rounded-3 bg-light h-100 d-flex flex-column justify-content-between shadow-sm">
+                            <div>
+                                <span class="badge bg-primary mb-1">Entrance #1</span>
+                                <h6 class="fw-bold text-navy mb-2">Main Entrance</h6>
+                                <div class="bg-white p-2 rounded border d-inline-block shadow-sm mb-2">
+                                    <img src="{{ url_for('static', filename='qrcodes/qr_location_1.png') }}" alt="Main Entrance QR" class="img-fluid" style="max-width: 140px; border-radius: 6px;">
+                                </div>
+                            </div>
+                            <div class="d-flex gap-1 justify-content-center">
+                                <a href="{{ url_for('navigation_view', from=1) }}" class="btn btn-sm btn-primary flex-grow-1 fw-bold">Navigate</a>
+                                <a href="{{ url_for('download_qr', location_id=1) }}" class="btn btn-sm btn-outline-secondary" title="Download"><i class="bi bi-download"></i></a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4 col-sm-6 text-center">
+                        <div class="p-3 border rounded-3 bg-light h-100 d-flex flex-column justify-content-between shadow-sm">
+                            <div>
+                                <span class="badge bg-info text-dark mb-1">Check-in #3</span>
+                                <h6 class="fw-bold text-navy mb-2">Check-in Counter A</h6>
+                                <div class="bg-white p-2 rounded border d-inline-block shadow-sm mb-2">
+                                    <img src="{{ url_for('static', filename='qrcodes/qr_location_3.png') }}" alt="Check-in A QR" class="img-fluid" style="max-width: 140px; border-radius: 6px;">
+                                </div>
+                            </div>
+                            <div class="d-flex gap-1 justify-content-center">
+                                <a href="{{ url_for('navigation_view', from=3) }}" class="btn btn-sm btn-primary flex-grow-1 fw-bold">Navigate</a>
+                                <a href="{{ url_for('download_qr', location_id=3) }}" class="btn btn-sm btn-outline-secondary" title="Download"><i class="bi bi-download"></i></a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4 col-sm-6 text-center">
+                        <div class="p-3 border rounded-3 bg-light h-100 d-flex flex-column justify-content-between shadow-sm">
+                            <div>
+                                <span class="badge bg-warning text-dark mb-1">Security #6</span>
+                                <h6 class="fw-bold text-navy mb-2">Security Zone 1</h6>
+                                <div class="bg-white p-2 rounded border d-inline-block shadow-sm mb-2">
+                                    <img src="{{ url_for('static', filename='qrcodes/qr_location_6.png') }}" alt="Security 1 QR" class="img-fluid" style="max-width: 140px; border-radius: 6px;">
+                                </div>
+                            </div>
+                            <div class="d-flex gap-1 justify-content-center">
+                                <a href="{{ url_for('navigation_view', from=6) }}" class="btn btn-sm btn-primary flex-grow-1 fw-bold">Navigate</a>
+                                <a href="{{ url_for('download_qr', location_id=6) }}" class="btn btn-sm btn-outline-secondary" title="Download"><i class="bi bi-download"></i></a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4 col-sm-6 text-center">
+                        <div class="p-3 border rounded-3 bg-light h-100 d-flex flex-column justify-content-between shadow-sm">
+                            <div>
+                                <span class="badge bg-secondary mb-1">Concourse #8</span>
+                                <h6 class="fw-bold text-navy mb-2">Central Lounge</h6>
+                                <div class="bg-white p-2 rounded border d-inline-block shadow-sm mb-2">
+                                    <img src="{{ url_for('static', filename='qrcodes/qr_location_8.png') }}" alt="Central Lounge QR" class="img-fluid" style="max-width: 140px; border-radius: 6px;">
+                                </div>
+                            </div>
+                            <div class="d-flex gap-1 justify-content-center">
+                                <a href="{{ url_for('navigation_view', from=8) }}" class="btn btn-sm btn-primary flex-grow-1 fw-bold">Navigate</a>
+                                <a href="{{ url_for('download_qr', location_id=8) }}" class="btn btn-sm btn-outline-secondary" title="Download"><i class="bi bi-download"></i></a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4 col-sm-6 text-center">
+                        <div class="p-3 border rounded-3 bg-light h-100 d-flex flex-column justify-content-between shadow-sm">
+                            <div>
+                                <span class="badge bg-success mb-1">Gate #12</span>
+                                <h6 class="fw-bold text-navy mb-2">Boarding Gate A5</h6>
+                                <div class="bg-white p-2 rounded border d-inline-block shadow-sm mb-2">
+                                    <img src="{{ url_for('static', filename='qrcodes/qr_location_12.png') }}" alt="Gate A5 QR" class="img-fluid" style="max-width: 140px; border-radius: 6px;">
+                                </div>
+                            </div>
+                            <div class="d-flex gap-1 justify-content-center">
+                                <a href="{{ url_for('navigation_view', from=12) }}" class="btn btn-sm btn-primary flex-grow-1 fw-bold">Navigate</a>
+                                <a href="{{ url_for('download_qr', location_id=12) }}" class="btn btn-sm btn-outline-secondary" title="Download"><i class="bi bi-download"></i></a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4 col-sm-6 text-center">
+                        <div class="p-3 border rounded-3 bg-light h-100 d-flex flex-column justify-content-between shadow-sm">
+                            <div>
+                                <span class="badge bg-dark mb-1">Baggage #15</span>
+                                <h6 class="fw-bold text-navy mb-2">Baggage Claim</h6>
+                                <div class="bg-white p-2 rounded border d-inline-block shadow-sm mb-2">
+                                    <img src="{{ url_for('static', filename='qrcodes/qr_location_15.png') }}" alt="Baggage Claim QR" class="img-fluid" style="max-width: 140px; border-radius: 6px;">
+                                </div>
+                            </div>
+                            <div class="d-flex gap-1 justify-content-center">
+                                <a href="{{ url_for('navigation_view', from=15) }}" class="btn btn-sm btn-primary flex-grow-1 fw-bold">Navigate</a>
+                                <a href="{{ url_for('download_qr', location_id=15) }}" class="btn btn-sm btn-outline-secondary" title="Download"><i class="bi bi-download"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let scannerInstance = null;
+
+    function handleDecodedQR(decodedText) {
+        document.getElementById('scanner-status').innerHTML = `
+            <div class="alert alert-success py-2 mb-0">
+                <i class="bi bi-check-circle-fill me-1"></i> QR Scanned: <strong>${decodedText}</strong>
+            </div>
+        `;
+
+        // Check if QR is a direct URL or contains loc_id
+        try {
+            if (decodedText.includes('loc_id=')) {
+                window.location.href = decodedText;
+                return;
+            }
+            // Check if JSON
+            if (decodedText.startsWith('{') && decodedText.endsWith('}')) {
+                const parsed = JSON.parse(decodedText);
+                if (parsed.loc_id) {
+                    window.location.href = `/navigation?from=${parsed.loc_id}`;
+                    return;
+                }
+            }
+            // Check if numeric ID
+            const numericId = parseInt(decodedText);
+            if (!isNaN(numericId)) {
+                window.location.href = `/navigation?from=${numericId}`;
+                return;
+            }
+        } catch (e) {
+            console.error(e);
+        }
+
+        // Default: redirect with decoded parameter
+        window.location.href = `/passenger?scan_payload=${encodeURIComponent(decodedText)}`;
+    }
+
+    function restartScanner() {
+        if (scannerInstance) {
+            try {
+                scannerInstance.stop().then(() => {
+                    scannerInstance = initQrScanner("qr-reader", handleDecodedQR);
+                }).catch(() => {
+                    scannerInstance = initQrScanner("qr-reader", handleDecodedQR);
+                });
+            } catch (e) {
+                scannerInstance = initQrScanner("qr-reader", handleDecodedQR);
+            }
+        } else {
+            scannerInstance = initQrScanner("qr-reader", handleDecodedQR);
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        // Initialize camera scanner if supported
+        if (typeof Html5Qrcode !== 'undefined') {
+            try {
+                scannerInstance = initQrScanner("qr-reader", handleDecodedQR);
+            } catch (err) {
+                console.log("Auto-start camera notice:", err);
+            }
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block title %}{{ get_text('app_title') }} - Airport Navigation{% endblock %}
+
+{% block content %}
+<!-- Modern, Clean Airport Hero Banner -->
+<section class="hero-airport-banner py-4">
+    <div class="container position-relative" style="z-index: 2;">
+        <div class="row align-items-center g-4">
+            <div class="col-lg-8">
+                <span class="badge px-3 py-2 fw-bold text-white mb-2" style="background-color: var(--aero-blue);">
+                    <i class="bi bi-geo-alt-fill me-1"></i> TERMINAL 2 INDOOR WAYFINDING
+                </span>
+                <h1 class="hero-title mb-2">{{ get_text('app_title') }}</h1>
+                <p class="hero-tagline mb-3 text-white-50">
+                    {{ get_text('subtitle') }}
+                </p>
+
+                <!-- Clean Flight Search Form -->
+                <div class="card p-3 shadow-sm border-0" style="border-radius: 14px; background: rgba(255, 255, 255, 0.98);">
+                    <form action="{{ url_for('passenger_dashboard') }}" method="GET" class="row g-2 align-items-center">
+                        <div class="col-md-5">
+                            <label class="form-label small fw-bold text-muted mb-1">
+                                <i class="bi bi-ticket-detailed text-primary me-1"></i> {{ get_text('flight_number') }}
+                            </label>
+                            <input type="text" name="flight" class="form-control form-control-lg fw-bold" placeholder="e.g. AI202 or 6E305" required style="text-transform: uppercase;">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold text-muted mb-1">
+                                <i class="bi bi-person text-secondary me-1"></i> {{ get_text('passenger_name') }}
+                            </label>
+                            <input type="text" name="passenger_name" class="form-control form-control-lg" placeholder="Optional">
+                        </div>
+                        <div class="col-md-3 d-grid">
+                            <label class="form-label small text-transparent mb-1 d-none d-md-block">Action</label>
+                            <button type="submit" class="btn btn-airport btn-lg justify-content-center">
+                                <i class="bi bi-arrow-right-circle-fill"></i> Guide Me
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Sleek Airport Terminal Status Badge on Right -->
+            <div class="col-lg-4 d-none d-lg-block">
+                <div class="p-3 text-white rounded-3 shadow-sm" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); backdrop-filter: blur(8px);">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="rounded-circle bg-success d-inline-block" style="width: 10px; height: 10px;"></span>
+                        <strong class="small text-uppercase">Live Airport Status</strong>
+                    </div>
+                    <div class="small text-white-50 mb-2">
+                        Indoor QR checkpoints and audio-visual turn-by-turn guidance are active across all concourses.
+                    </div>
+                    <div class="d-flex justify-content-between pt-2 border-top border-secondary small">
+                        <span>Checkpoints: <strong class="text-white">Active</strong></span>
+                        <span>Languages: <strong class="text-info">EN • TA • HI</strong></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Main Airport Dashboard: Clean Map & Departures -->
+<div class="container my-4">
+    <div class="row g-4">
+        <!-- Airport Map & Quick Route Selector -->
+        <div class="col-lg-7">
+            <div class="airport-card p-3">
+                <div class="airport-card-header mb-3 pb-2">
+                    <h5 class="card-title-main mb-0">
+                        <i class="bi bi-signpost-split-fill text-primary"></i>
+                        {{ get_text('airport_map') }} & Quick Wayfinding
+                    </h5>
+                    <a href="{{ url_for('navigation_view') }}" class="btn btn-sm btn-outline-primary">
+                        Full Navigation <i class="bi bi-chevron-right"></i>
+                    </a>
+                </div>
+
+                <form action="{{ url_for('navigation_view') }}" method="GET" class="row g-2 mb-3">
+                    <div class="col-md-5">
+                        <label class="form-label small fw-bold text-muted mb-1">{{ get_text('current_location') }}</label>
+                        <select name="from" class="form-select form-select-sm">
+                            {% for loc in locations %}
+                                <option value="{{ loc.id }}" {% if loc.location_name == 'Main Entrance' %}selected{% endif %}>
+                                    {{ get_loc_name(loc.location_name) }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-5">
+                        <label class="form-label small fw-bold text-muted mb-1">{{ get_text('destination') }}</label>
+                        <select name="to" class="form-select form-select-sm">
+                            {% for loc in locations %}
+                                <option value="{{ loc.id }}" {% if loc.location_name == 'Central Waiting Lounge' %}selected{% endif %}>
+                                    {{ get_loc_name(loc.location_name) }} ({{ loc.location_type }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-2 d-grid align-items-end">
+                        <button type="submit" class="btn btn-sm btn-airport justify-content-center">
+                            <i class="bi bi-compass"></i> Go
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Interactive Terminal Floor Plan Canvas -->
+                <div class="airport-map-wrapper">
+                    <svg id="preview-airport-map" class="airport-map-svg" style="min-height: 380px;"></svg>
+                </div>
+                <div class="text-center small text-muted mt-2">
+                    <i class="bi bi-cursor-fill text-primary me-1"></i> Click any checkpoint on the map to set destination
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Flights Schedule Board -->
+        <div class="col-lg-5">
+            <div class="airport-card p-3">
+                <div class="airport-card-header mb-3 pb-2">
+                    <h5 class="card-title-main mb-0">
+                        <i class="bi bi-broadcast text-danger"></i> Live Departures
+                    </h5>
+                    <a href="{{ url_for('flight_search') }}" class="btn btn-sm btn-outline-secondary">
+                        View All
+                    </a>
+                </div>
+
+                <div class="d-flex flex-column gap-2" style="max-height: 480px; overflow-y: auto; padding-right: 2px;">
+                    {% for f in flights %}
+                    <div class="flight-row-card p-2 mb-2">
+                        <div>
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <span class="flight-number-pill" style="font-size: 0.9rem; padding: 0.2rem 0.6rem;">{{ f.flight_number }}</span>
+                                <span class="fw-bold text-navy">{{ f.destination_city }}</span>
+                            </div>
+                            <div class="small text-muted">
+                                <span>{{ f.airline }}</span> • <span>Dep: <strong>{{ f.departure_time }}</strong></span>
+                                {% if f.boarding_closes %}
+                                <div class="text-danger fw-semibold" style="font-size: 0.74rem;">
+                                    <i class="bi bi-clock-fill me-1"></i>Gate Closes: <strong>{{ f.boarding_closes }}</strong>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="text-end">
+                            <div class="mb-1">
+                                {% if f.status == 'On Time' %}
+                                    <span class="badge badge-status status-on-time" style="font-size: 0.75rem;">{{ f.status }}</span>
+                                {% elif f.status == 'Boarding' %}
+                                    <span class="badge badge-status status-boarding" style="font-size: 0.75rem;">{{ f.status }}</span>
+                                {% elif f.status == 'Gate Changed' %}
+                                    <span class="badge badge-status status-gate-changed" style="font-size: 0.75rem;">{{ f.status }}</span>
+                                {% else %}
+                                    <span class="badge badge-status status-delayed" style="font-size: 0.75rem;">{{ f.status }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="small fw-bold text-primary">
+                                Gate: {{ f.boarding_gate.replace('Boarding Gate ', '') }}
+                            </div>
+                            <a href="{{ url_for('passenger_dashboard', flight=f.flight_number) }}" class="btn btn-sm btn-link p-0 text-decoration-none text-info fw-bold" style="font-size: 0.8rem;">
+                                Select <i class="bi bi-arrow-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Load preview map on homepage
+    document.addEventListener("DOMContentLoaded", function() {
+        Promise.all([
+            fetch('/api/locations').then(r => r.json()),
+            fetch('/api/paths').then(r => r.json())
+        ]).then(([nodes, edges]) => {
+            renderAirportMap('preview-airport-map', null, nodes, edges, {
+                onNodeClick: function(node) {
+                    window.location.href = `/navigation?to=${node.id}`;
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,426 @@
+{% extends "base.html" %}
+
+{% block title %}{{ get_text('airport_map') }} - {{ get_text('app_title') }}{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Top Route Summary Header -->
+    <div class="airport-card p-3 mb-4">
+        <form id="route-form" action="{{ url_for('navigation_view') }}" method="GET" class="row g-3 align-items-center">
+            <input type="hidden" name="flight" value="{{ flight_num or '' }}">
+            
+            <div class="col-lg-4 col-md-5">
+                <label class="form-label small fw-bold text-muted mb-1">
+                    <i class="bi bi-geo-alt-fill text-primary"></i> {{ get_text('current_location') }}
+                </label>
+                <select name="from" id="select-start" class="form-select fw-semibold">
+                    {% for loc in locations %}
+                        <option value="{{ loc.id }}" {% if loc.id == start_id %}selected{% endif %}>
+                            {{ get_loc_name(loc.location_name) }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-lg-4 col-md-5">
+                <label class="form-label small fw-bold text-muted mb-1">
+                    <i class="bi bi-flag-fill text-success"></i> {{ get_text('destination') }}
+                </label>
+                <select name="to" id="select-end" class="form-select fw-semibold">
+                    {% for loc in locations %}
+                        <option value="{{ loc.id }}" {% if loc.id == end_id %}selected{% endif %}>
+                            {{ get_loc_name(loc.location_name) }} ({{ loc.location_type }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-lg-4 col-md-2 d-grid">
+                <label class="form-label small text-transparent mb-1 d-none d-md-block">Action</label>
+                <button type="submit" class="btn btn-airport justify-content-center">
+                    <i class="bi bi-arrow-repeat"></i> {{ get_text('recalculate_route') }}
+                </button>
+            </div>
+        </form>
+    </div>
+
+    {% if flight_info %}
+    <!-- Flight Boarding Status & Gate Closing Notice -->
+    <div class="airport-card p-3 mb-4 border-primary shadow-sm" style="background: linear-gradient(135deg, #f8faff 0%, #eef5ff 100%);">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <span class="flight-number-pill fs-5">{{ flight_info.flight_number }}</span>
+                <div>
+                    <h5 class="fw-bold text-navy mb-0">{{ flight_info.airline }} ➔ {{ flight_info.destination_city }}</h5>
+                    <span class="small text-muted">{{ get_text('boarding_gate') }}: <strong class="text-primary">{{ flight_info.boarding_gate }}</strong></span>
+                </div>
+            </div>
+
+            <div class="d-flex flex-wrap align-items-center gap-3">
+                <div class="text-center px-3 py-1 bg-white border rounded">
+                    <span class="small text-muted d-block" style="font-size: 0.72rem;">{{ get_text('departure') }}</span>
+                    <strong class="text-navy">{{ flight_info.departure_time }}</strong>
+                </div>
+
+                <div class="text-center px-3 py-1 bg-white border rounded">
+                    <span class="small text-muted d-block" style="font-size: 0.72rem;">{{ get_text('boarding_time') }}</span>
+                    <strong class="text-primary">{{ flight_info.boarding_time or '40m prior' }}</strong>
+                </div>
+
+                <div class="text-center px-3 py-1 rounded border border-danger-subtle" style="background: #fff0f0;">
+                    <span class="small text-danger fw-bold d-block" style="font-size: 0.72rem;"><i class="bi bi-clock-fill me-1"></i>{{ get_text('boarding_closes') }}</span>
+                    <strong class="text-danger fs-6">{{ flight_info.boarding_closes or '20m prior' }}</strong>
+                </div>
+
+                <span class="badge bg-danger small py-2 px-3">
+                    <i class="bi bi-exclamation-circle-fill me-1"></i> {{ get_text('gate_closing_notice') }}
+                </span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Live Gate Change Alert Banner (Dynamic) -->
+    <div id="gate-change-alert-box" class="alert alert-gate-change d-none" role="alert">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <i class="bi bi-bell-fill fs-2 text-warning"></i>
+                <div>
+                    <h5 class="fw-bold mb-1" id="gate-change-title">Gate Change Alert</h5>
+                    <p class="mb-0 small" id="gate-change-msg">
+                        Your flight boarding gate has moved. A new navigation path has been prepared.
+                    </p>
+                </div>
+            </div>
+            <button id="btn-apply-gate-change" class="btn btn-warning fw-bold text-dark">
+                <i class="bi bi-compass"></i> Route to New Gate
+            </button>
+        </div>
+    </div>
+
+    <!-- Wrong Turn Alert Banner (Dynamic) -->
+    <div id="wrong-turn-alert-box" class="alert alert-wrong-turn d-none" role="alert">
+        <div class="d-flex align-items-center gap-3">
+            <i class="bi bi-exclamation-triangle-fill fs-2 text-danger"></i>
+            <div>
+                <h5 class="fw-bold mb-1">Wrong Turn Detected!</h5>
+                <p class="mb-0 small" id="wrong-turn-msg">
+                    {{ get_text('wrong_turn_warning') }}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Navigation Layout: Map on Left, Turn-by-Turn Guidance on Right -->
+    <div class="row g-4">
+        <!-- Airport Floor Plan Interactive SVG Map -->
+        <div class="col-lg-8">
+            <div class="airport-card p-3 mb-3">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2 pb-2 border-bottom">
+                    <div>
+                        <h5 class="card-title-main mb-0">
+                            <i class="bi bi-map-fill text-primary"></i> Terminal 2 Interactive Indoor Map
+                        </h5>
+                        <span class="small text-muted">Dijkstra Shortest Walking Path Highlighted</span>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-primary px-3 py-2">
+                            <i class="bi bi-rulers me-1"></i> <span id="dist-display">{{ route_data.total_distance }}</span> {{ get_text('metres') }}
+                        </span>
+                        <span class="badge bg-success px-3 py-2">
+                            <i class="bi bi-stopwatch me-1"></i> <span id="time-display">{{ route_data.estimated_time }}</span> {{ get_text('minutes') }}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- SVG Map Canvas Container -->
+                <div class="airport-map-wrapper">
+                    <svg id="airport-nav-svg" class="airport-map-svg"></svg>
+                </div>
+
+                <!-- Map Legend -->
+                <div class="d-flex flex-wrap align-items-center justify-content-center gap-3 mt-3 pt-2 border-top small text-muted">
+                    <span class="d-flex align-items-center gap-1">
+                        <span class="d-inline-block rounded-circle bg-primary" style="width: 12px; height: 12px;"></span> Current Origin
+                    </span>
+                    <span class="d-flex align-items-center gap-1">
+                        <span class="d-inline-block rounded-circle bg-success" style="width: 12px; height: 12px;"></span> Destination Target
+                    </span>
+                    <span class="d-flex align-items-center gap-1">
+                        <span class="d-inline-block rounded-pill" style="width: 25px; height: 4px; background: var(--aero-blue);"></span> Walking Path
+                    </span>
+                    <span class="d-flex align-items-center gap-1">
+                        <i class="bi bi-cursor-fill text-secondary"></i> Click any node to set destination
+                    </span>
+                </div>
+            </div>
+
+            <!-- College Mini-Project Simulation & Wrong-Turn Demonstration Card -->
+            <div class="airport-card p-3 border-info">
+                <div class="airport-card-header mb-2 pb-2">
+                    <h6 class="card-title-main text-primary">
+                        <i class="bi bi-sliders text-info"></i> Evaluator Checkpoint & Wrong-Turn Simulator
+                    </h6>
+                    <span class="badge bg-info text-dark">Live Demonstration Controls</span>
+                </div>
+                <p class="small text-muted mb-3">
+                    Simulate scanning QR checkpoints during transit to test <strong>indoor tracking</strong> and <strong>wrong-turn detection with automatic Dijkstra rerouting</strong>:
+                </p>
+
+                <div class="row g-2 align-items-center">
+                    <div class="col-md-5">
+                        <label class="small text-muted fw-bold mb-1">Simulate Scanning Checkpoint:</label>
+                        <select id="simulated-checkpoint-select" class="form-select form-select-sm">
+                            {% for loc in locations %}
+                                <option value="{{ loc.id }}">
+                                    #{{ loc.id }} - {{ loc.location_name }} ({{ loc.location_type }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-7 d-flex gap-2 align-items-end">
+                        <button type="button" class="btn btn-sm btn-outline-success fw-bold flex-grow-1" onclick="triggerCheckpointSimulation(false)">
+                            <i class="bi bi-check2-circle"></i> Scan Next Step
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-danger fw-bold flex-grow-1" onclick="triggerCheckpointSimulation(true)">
+                            <i class="bi bi-exclamation-octagon"></i> Force Wrong Turn
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Side: Turn-by-Turn Guidance & Voice Navigation -->
+        <div class="col-lg-4">
+            <div class="airport-card">
+                <div class="airport-card-header">
+                    <h5 class="card-title-main">
+                        <i class="bi bi-list-ol text-primary"></i> {{ get_text('steps') }}
+                    </h5>
+                </div>
+
+                <!-- Voice Audio Controls Box -->
+                <div class="p-3 bg-light rounded-3 mb-3 border">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="fw-bold small text-navy">
+                            <i class="bi bi-volume-up-fill text-primary me-1"></i> {{ get_text('voice_guidance') }}
+                        </span>
+                        <span class="badge bg-secondary text-uppercase">{{ current_lang }}</span>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button id="btn-voice-play" class="btn btn-sm btn-primary flex-grow-1" onclick="playVoiceDirections()">
+                            <i class="bi bi-play-fill"></i> {{ get_text('listen_directions') }}
+                        </button>
+                        <button id="btn-voice-pause" class="btn btn-sm btn-outline-secondary" onclick="pauseSpeech()" disabled>
+                            <i class="bi bi-pause-fill"></i>
+                        </button>
+                        <button id="btn-voice-stop" class="btn btn-sm btn-outline-danger" onclick="stopSpeech()" disabled>
+                            <i class="bi bi-stop-fill"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Distance & Time Summary Widget -->
+                <div class="row g-2 mb-3 text-center">
+                    <div class="col-6">
+                        <div class="p-2 border rounded bg-white">
+                            <span class="small text-muted d-block">{{ get_text('distance') }}</span>
+                            <strong class="text-primary fs-5" id="summary-distance">{{ route_data.total_distance }} m</strong>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-2 border rounded bg-white">
+                            <span class="small text-muted d-block">{{ get_text('walking_time') }}</span>
+                            <strong class="text-success fs-5" id="summary-time">{{ route_data.estimated_time }} min</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step-by-Step Directions List -->
+                <div style="max-height: 480px; overflow-y: auto; padding-right: 4px;">
+                    <ul class="step-direction-list" id="directions-container">
+                        {% for step in route_data.steps %}
+                        <li class="step-direction-item {% if loop.first %}active{% endif %}">
+                            <div class="step-num-bubble">{{ step.step_number }}</div>
+                            <div class="step-content">
+                                <div class="step-instruction-text">{{ step.instruction }}</div>
+                                {% if step.distance > 0 %}
+                                <div class="step-distance-badge">
+                                    <i class="bi bi-arrow-right-short text-primary"></i> {{ step.distance }} {{ get_text('metres') }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // In-memory route state
+    let activeRouteData = {{ route_data | tojson }};
+    let allNodesList = [];
+    let allEdgesList = [];
+    const currentLang = "{{ current_lang }}";
+    const currentFlight = "{{ flight_num or '' }}";
+
+    document.addEventListener("DOMContentLoaded", function() {
+        // Fetch graph nodes & edges
+        Promise.all([
+            fetch('/api/locations').then(r => r.json()),
+            fetch('/api/paths').then(r => r.json())
+        ]).then(([nodes, edges]) => {
+            allNodesList = nodes;
+            allEdgesList = edges;
+
+            // Render SVG Airport Map
+            renderMapWithActiveRoute();
+
+            // Setup real-time gate change polling if flight is tracked
+            if (currentFlight && currentFlight !== 'N/A') {
+                const targetGateName = activeRouteData.end_node ? activeRouteData.end_node.location_name : '';
+                startGatePolling(currentFlight, targetGateName, onLiveGateChanged);
+            }
+        });
+    });
+
+    function renderMapWithActiveRoute() {
+        renderAirportMap('airport-nav-svg', activeRouteData, allNodesList, allEdgesList, {
+            onNodeClick: function(node) {
+                // Change destination on node click
+                const selectEnd = document.getElementById('select-end');
+                if (selectEnd) {
+                    selectEnd.value = node.id;
+                    document.getElementById('route-form').submit();
+                }
+            }
+        });
+    }
+
+    // Play Voice Directions in active language
+    function playVoiceDirections() {
+        if (!activeRouteData || !activeRouteData.voice_text) return;
+        speakDirections(activeRouteData.voice_text, currentLang);
+    }
+
+    // Handle Live Boarding Gate Change
+    function onLiveGateChanged(newGateName, fullData) {
+        const alertBox = document.getElementById('gate-change-alert-box');
+        const alertMsg = document.getElementById('gate-change-msg');
+        const alertTitle = document.getElementById('gate-change-title');
+
+        if (alertBox) {
+            alertTitle.textContent = `Gate Change Notice: Flight ${fullData.flight_number}`;
+            alertMsg.textContent = `Your flight boarding gate has moved to ${newGateName}. Click below to automatically update your walking path.`;
+            alertBox.classList.remove('d-none');
+            // Sound notification chime
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
+                osc.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.35);
+            } catch(e) {}
+        }
+
+        // Apply Gate Change Button
+        const applyBtn = document.getElementById('btn-apply-gate-change');
+        if (applyBtn) {
+            applyBtn.onclick = function() {
+                // Find node ID of new gate
+                const newGateNode = allNodesList.find(n => n.location_name.toLowerCase().includes(newGateName.toLowerCase()));
+                if (newGateNode) {
+                    document.getElementById('select-end').value = newGateNode.id;
+                    document.getElementById('route-form').submit();
+                }
+            };
+        }
+    }
+
+    // Checkpoint Simulation & Wrong-Turn Recalculation
+    function triggerCheckpointSimulation(forceWrongTurn = false) {
+        let scannedId;
+        const currentPath = activeRouteData.path_ids || [];
+        const destId = activeRouteData.end_node ? activeRouteData.end_node.id : null;
+
+        if (forceWrongTurn) {
+            // Pick a node that is NOT in current path
+            const offPathNodes = allNodesList.filter(n => !currentPath.includes(n.id));
+            if (offPathNodes.length > 0) {
+                // Pick Baggage Claim (15) or Food Court (9) or Restroom
+                scannedId = offPathNodes[0].id;
+            } else {
+                scannedId = document.getElementById('simulated-checkpoint-select').value;
+            }
+        } else {
+            // Select next node in path or chosen dropdown item
+            if (currentPath.length > 1) {
+                scannedId = currentPath[1]; // Advance to next node
+            } else {
+                scannedId = document.getElementById('simulated-checkpoint-select').value;
+            }
+        }
+
+        simulateCheckpointScan(scannedId, currentPath, destId, currentLang, (result) => {
+            if (result.success) {
+                activeRouteData = result;
+
+                // Update start dropdown
+                document.getElementById('select-start').value = scannedId;
+
+                // Update distances
+                document.getElementById('dist-display').textContent = result.total_distance;
+                document.getElementById('time-display').textContent = result.estimated_time;
+                document.getElementById('summary-distance').textContent = `${result.total_distance} m`;
+                document.getElementById('summary-time').textContent = `${result.estimated_time} min`;
+
+                // Update Step Directions
+                updateDirectionsUI(result.steps);
+
+                // Handle Wrong Turn Alert
+                const wrongAlert = document.getElementById('wrong-turn-alert-box');
+                if (result.is_wrong_turn) {
+                    wrongAlert.classList.remove('d-none');
+                    document.getElementById('wrong-turn-msg').textContent = result.warning_message;
+                    // Speak alert
+                    speakDirections(result.warning_message, currentLang);
+                } else {
+                    wrongAlert.classList.add('d-none');
+                }
+
+                // Re-render Map
+                renderMapWithActiveRoute();
+            }
+        });
+    }
+
+    function updateDirectionsUI(steps) {
+        const container = document.getElementById('directions-container');
+        if (!container) return;
+        container.innerHTML = '';
+
+        steps.forEach((s, idx) => {
+            const li = document.createElement('li');
+            li.className = `step-direction-item ${idx === 0 ? 'active' : ''}`;
+            li.innerHTML = `
+                <div class="step-num-bubble">${s.step_number}</div>
+                <div class="step-content">
+                    <div class="step-instruction-text">${s.instruction}</div>
+                    ${s.distance > 0 ? `<div class="step-distance-badge"><i class="bi bi-arrow-right-short text-primary"></i> ${s.distance} {{ get_text('metres') }}</div>` : ''}
+                </div>
+            `;
+            container.appendChild(li);
+        });
+    }
+</script>
+{% endblock %}

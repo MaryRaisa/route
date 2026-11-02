@@ -1,0 +1,563 @@
+/* ==========================================================================
+   SMART QR GUIDE AIRPORT - MODERN AIRPORT NAVIGATION SYSTEM
+   Colors: Navy Blue (#0B192C, #1E3E62), Aero Blue (#00A8FF, #0077B6), White (#FFFFFF)
+   ========================================================================== */
+
+:root {
+    --primary-navy: #0B192C;
+    --navy-surface: #1E3E62;
+    --navy-light: #2A4F79;
+    --aero-blue: #00A8FF;
+    --aero-dark: #0077B6;
+    --sky-soft: #E6F4FE;
+    --accent-gold: #FFB703;
+    --accent-red: #EF476F;
+    --accent-green: #06D6A0;
+    --bg-light: #F4F7FB;
+    --surface-white: #FFFFFF;
+    --text-primary: #1E293B;
+    --text-muted: #64748B;
+    --border-subtle: #E2E8F0;
+    --shadow-soft: 0 4px 20px rgba(11, 25, 44, 0.08);
+    --shadow-hover: 0 10px 25px rgba(0, 168, 255, 0.15);
+    --transition-fast: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-light);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ==================== NAVIGATION BAR ==================== */
+.airport-navbar {
+    background-color: var(--primary-navy);
+    border-bottom: 3px solid var(--aero-blue);
+    padding: 0.75rem 0;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.navbar-brand {
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    color: #FFFFFF !important;
+    font-size: 1.35rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.brand-icon-wrap {
+    width: 38px;
+    height: 38px;
+    background: linear-gradient(135deg, var(--aero-blue), var(--aero-dark));
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    box-shadow: 0 2px 8px rgba(0, 168, 255, 0.4);
+}
+
+.nav-link {
+    color: #CBD5E1 !important;
+    font-weight: 600;
+    font-size: 0.95rem;
+    padding: 0.5rem 0.9rem !important;
+    border-radius: 8px;
+    transition: var(--transition-fast);
+}
+
+.nav-link:hover, .nav-link.active {
+    color: #FFFFFF !important;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.lang-selector-btn {
+    background-color: rgba(0, 168, 255, 0.15);
+    border: 1px solid var(--aero-blue);
+    color: #FFFFFF;
+    font-weight: 600;
+    border-radius: 20px;
+    padding: 0.35rem 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.lang-selector-btn:hover {
+    background-color: var(--aero-blue);
+    color: #FFFFFF;
+}
+
+/* ==================== AIRPORT HERO BANNER ==================== */
+.hero-airport-banner {
+    background: linear-gradient(135deg, var(--primary-navy) 0%, var(--navy-surface) 100%);
+    color: white;
+    padding: 3.5rem 0 3rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.hero-airport-banner::after {
+    content: '';
+    position: absolute;
+    bottom: -50px;
+    right: -50px;
+    width: 250px;
+    height: 250px;
+    background: radial-gradient(circle, rgba(0, 168, 255, 0.15) 0%, transparent 70%);
+    border-radius: 50%;
+}
+
+.hero-title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    margin-bottom: 0.75rem;
+}
+
+.hero-tagline {
+    font-size: 1.15rem;
+    color: #94A3B8;
+    max-width: 600px;
+}
+
+/* ==================== CARDS & TILES ==================== */
+.airport-card {
+    background: var(--surface-white);
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    box-shadow: var(--shadow-soft);
+    padding: 1.5rem;
+    transition: var(--transition-fast);
+    height: 100%;
+}
+
+.airport-card:hover {
+    box-shadow: var(--shadow-hover);
+    transform: translateY(-2px);
+    border-color: rgba(0, 168, 255, 0.4);
+}
+
+.airport-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.card-title-main {
+    font-weight: 700;
+    color: var(--primary-navy);
+    font-size: 1.2rem;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Quick Action Tiles on Homepage */
+.action-tile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 1.8rem 1.2rem;
+    background: var(--surface-white);
+    border-radius: 16px;
+    border: 1px solid var(--border-subtle);
+    color: var(--primary-navy);
+    text-decoration: none;
+    transition: var(--transition-fast);
+    box-shadow: var(--shadow-soft);
+}
+
+.action-tile:hover {
+    background: linear-gradient(180deg, #FFFFFF 0%, var(--sky-soft) 100%);
+    border-color: var(--aero-blue);
+    color: var(--aero-dark);
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-hover);
+}
+
+.tile-icon-box {
+    width: 65px;
+    height: 65px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, var(--sky-soft) 0%, #D0EBFD 100%);
+    color: var(--aero-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
+    transition: var(--transition-fast);
+}
+
+.action-tile:hover .tile-icon-box {
+    background: linear-gradient(135deg, var(--aero-blue) 0%, var(--aero-dark) 100%);
+    color: white;
+    transform: scale(1.08);
+}
+
+.tile-title {
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-bottom: 0.3rem;
+}
+
+.tile-desc {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+/* ==================== FLIGHT BOARD & BADGES ==================== */
+.flight-row-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 0.85rem;
+    border: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    transition: var(--transition-fast);
+}
+
+.flight-row-card:hover {
+    border-color: var(--aero-blue);
+    background-color: #FAFCFF;
+}
+
+.flight-number-pill {
+    background-color: var(--primary-navy);
+    color: white;
+    font-weight: 800;
+    padding: 0.35rem 0.85rem;
+    border-radius: 8px;
+    letter-spacing: 1px;
+    font-size: 1.05rem;
+    display: inline-block;
+}
+
+.badge-status {
+    padding: 0.4rem 0.85rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.status-on-time {
+    background-color: #D1FAE5;
+    color: #065F46;
+}
+
+.status-boarding {
+    background-color: #DBEAFE;
+    color: #1E40AF;
+}
+
+.status-gate-changed {
+    background-color: #FEF3C7;
+    color: #92400E;
+    animation: pulseBadge 1.5s infinite;
+}
+
+.status-delayed {
+    background-color: #FEE2E2;
+    color: #991B1B;
+}
+
+@keyframes pulseBadge {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* ==================== BUTTONS ==================== */
+.btn-airport {
+    background: linear-gradient(135deg, var(--aero-blue) 0%, var(--aero-dark) 100%);
+    color: white;
+    font-weight: 700;
+    border: none;
+    border-radius: 10px;
+    padding: 0.65rem 1.4rem;
+    transition: var(--transition-fast);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-airport:hover {
+    background: linear-gradient(135deg, #2AC4FF 0%, var(--aero-dark) 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(0, 168, 255, 0.4);
+    transform: translateY(-1px);
+}
+
+.btn-navy {
+    background-color: var(--primary-navy);
+    color: white;
+    font-weight: 700;
+    border-radius: 10px;
+    padding: 0.65rem 1.4rem;
+}
+
+.btn-navy:hover {
+    background-color: var(--navy-surface);
+    color: white;
+}
+
+/* ==================== MAP VISUALIZATION ==================== */
+.airport-map-wrapper {
+    position: relative;
+    background: #FFFFFF;
+    border: 2px solid var(--border-subtle);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: var(--shadow-soft);
+}
+
+.airport-map-svg {
+    width: 100%;
+    height: auto;
+    min-height: 480px;
+    display: block;
+    background: radial-gradient(circle at 50% 50%, #FAFDFE 0%, #F1F6FB 100%);
+}
+
+/* SVG Map elements */
+.map-edge {
+    stroke: #CBD5E1;
+    stroke-width: 4;
+    stroke-linecap: round;
+    transition: all 0.3s ease;
+}
+
+.map-edge-highlight {
+    stroke: var(--aero-blue);
+    stroke-width: 6;
+    stroke-dasharray: 8 6;
+    animation: dashMove 1s linear infinite;
+}
+
+@keyframes dashMove {
+    to {
+        stroke-dashoffset: -14;
+    }
+}
+
+.map-node-circle {
+    fill: #FFFFFF;
+    stroke: var(--navy-surface);
+    stroke-width: 3;
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.map-node-circle:hover {
+    transform: scale(1.15);
+    stroke: var(--aero-blue);
+    fill: var(--sky-soft);
+}
+
+.map-node-active {
+    stroke: var(--aero-blue) !important;
+    fill: #00A8FF !important;
+    animation: pulseNode 2s infinite;
+}
+
+.map-node-target {
+    stroke: var(--accent-green) !important;
+    fill: var(--accent-green) !important;
+}
+
+.map-node-wrong-turn {
+    stroke: var(--accent-red) !important;
+    fill: var(--accent-red) !important;
+    animation: wrongTurnShake 0.6s ease infinite;
+}
+
+@keyframes pulseNode {
+    0% { r: 16; opacity: 1; }
+    50% { r: 21; opacity: 0.8; }
+    100% { r: 16; opacity: 1; }
+}
+
+@keyframes wrongTurnShake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-3px); }
+    40%, 80% { transform: translateX(3px); }
+}
+
+.map-node-label {
+    font-size: 11px;
+    font-weight: 700;
+    fill: var(--primary-navy);
+    pointer-events: none;
+    text-anchor: middle;
+}
+
+/* ==================== NAVIGATION INSTRUCTION CARDS ==================== */
+.step-direction-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.step-direction-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem 0;
+    border-bottom: 1px dashed var(--border-subtle);
+    position: relative;
+}
+
+.step-direction-item:last-child {
+    border-bottom: none;
+}
+
+.step-num-bubble {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: var(--sky-soft);
+    color: var(--aero-dark);
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.step-direction-item.active .step-num-bubble {
+    background-color: var(--aero-blue);
+    color: white;
+}
+
+.step-content {
+    flex-grow: 1;
+}
+
+.step-instruction-text {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.2rem;
+}
+
+.step-distance-badge {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+/* ==================== WRONG TURN & GATE CHANGE ALERTS ==================== */
+.alert-wrong-turn {
+    background: #FFF1F2;
+    border-left: 5px solid var(--accent-red);
+    color: #9F1239;
+    padding: 1.25rem;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+    animation: slideDown 0.4s ease;
+}
+
+.alert-gate-change {
+    background: #FFFBEB;
+    border-left: 5px solid var(--accent-gold);
+    color: #92400E;
+    padding: 1.25rem;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+    animation: slideDown 0.4s ease;
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ==================== QR SCANNER CAMERA BOX ==================== */
+.scanner-viewport-box {
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+    border: 3px solid var(--primary-navy);
+    background: #000000;
+    box-shadow: var(--shadow-hover);
+}
+
+#qr-reader {
+    width: 100% !important;
+    border: none !important;
+}
+
+#qr-reader__scan_region {
+    background: transparent;
+}
+
+/* Overlay scan targeting frame */
+.scanner-reticle-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 220px;
+    height: 220px;
+    transform: translate(-50%, -50%);
+    border: 2px dashed var(--aero-blue);
+    border-radius: 16px;
+    pointer-events: none;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.4);
+}
+
+/* ==================== FOOTER ==================== */
+.airport-footer {
+    background-color: var(--primary-navy);
+    color: #94A3B8;
+    padding: 2.5rem 0 1.5rem;
+    margin-top: auto;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.footer-link {
+    color: #CBD5E1;
+    text-decoration: none;
+    transition: var(--transition-fast);
+}
+
+.footer-link:hover {
+    color: var(--aero-blue);
+}
+
+/* ==================== RESPONSIVE DESIGN ==================== */
+@media (max-width: 768px) {
+    .hero-title {
+        font-size: 1.85rem;
+    }
+    
+    .airport-map-svg {
+        min-height: 380px;
+    }
+
+    .flight-row-card {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

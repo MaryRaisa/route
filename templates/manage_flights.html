@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Flights - {{ get_text('app_title') }}{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Header -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+            <h2 class="fw-bold text-navy mb-1">
+                <i class="bi bi-airplane-engines text-primary me-2"></i>Flight Operations & Schedule Management
+            </h2>
+            <p class="text-muted mb-0">Add, update, modify boarding gates, and manage terminal assignments.</p>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button class="btn btn-airport" data-bs-toggle="modal" data-bs-target="#addFlightModal">
+                <i class="bi bi-plus-circle me-1"></i> Add New Flight
+            </button>
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i> Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Flights Table Card -->
+    <div class="airport-card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Flight Number</th>
+                        <th>Airline</th>
+                        <th>Destination</th>
+                        <th>Departure</th>
+                        <th>Boarding Starts</th>
+                        <th>Gate Closes</th>
+                        <th>Check-in Counter</th>
+                        <th>Security Checkpoint</th>
+                        <th>Boarding Gate</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for f in flights %}
+                    <tr>
+                        <td><span class="flight-number-pill" style="font-size: 0.95rem;">{{ f.flight_number }}</span></td>
+                        <td>{{ f.airline }}</td>
+                        <td><strong>{{ f.destination_city }}</strong></td>
+                        <td>{{ f.departure_time }}</td>
+                        <td><span class="small fw-semibold text-primary"><i class="bi bi-clock me-1"></i>{{ f.boarding_time or '-' }}</span></td>
+                        <td><span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-door-closed me-1"></i>{{ f.boarding_closes or '-' }}</span></td>
+                        <td><span class="badge bg-light text-dark border">{{ f.checkin_counter }}</span></td>
+                        <td><span class="badge bg-light text-dark border">{{ f.security_checkpoint }}</span></td>
+                        <td><span class="badge bg-primary fs-6">{{ f.boarding_gate }}</span></td>
+                        <td>
+                            <span class="badge badge-status {% if f.status == 'On Time' %}status-on-time{% elif f.status == 'Boarding' %}status-boarding{% elif f.status == 'Gate Changed' %}status-gate-changed{% else %}status-delayed{% endif %}">
+                                {{ f.status }}
+                            </span>
+                        </td>
+                        <td class="text-end">
+                            <button type="button" class="btn btn-sm btn-outline-primary me-1" data-bs-toggle="modal" data-bs-target="#editFlightModal{{ f.id }}" title="Edit Flight & Change Gate">
+                                <i class="bi bi-pencil-square"></i> Edit
+                            </button>
+                            <form action="{{ url_for('delete_flight', flight_id=f.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete flight {{ f.flight_number }}?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete Flight">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+
+                    <!-- Edit Flight Modal -->
+                    <div class="modal fade" id="editFlightModal{{ f.id }}" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <form action="{{ url_for('edit_flight', flight_id=f.id) }}" method="POST">
+                                    <div class="modal-header bg-navy text-white" style="background-color: var(--primary-navy);">
+                                        <h5 class="modal-title text-white">Edit Flight {{ f.flight_number }}</h5>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-bold">Airline</label>
+                                                <input type="text" name="airline" class="form-control" value="{{ f.airline }}" required>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-bold">Destination City</label>
+                                                <input type="text" name="destination_city" class="form-control" value="{{ f.destination_city }}" required>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-bold">Scheduled Departure Time</label>
+                                                <input type="text" name="departure_time" class="form-control" value="{{ f.departure_time }}" required>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-bold">Flight Status</label>
+                                                <select name="status" class="form-select">
+                                                    <option value="On Time" {% if f.status == 'On Time' %}selected{% endif %}>On Time</option>
+                                                    <option value="Boarding" {% if f.status == 'Boarding' %}selected{% endif %}>Boarding</option>
+                                                    <option value="Gate Changed" {% if f.status == 'Gate Changed' %}selected{% endif %}>Gate Changed</option>
+                                                    <option value="Delayed" {% if f.status == 'Delayed' %}selected{% endif %}>Delayed</option>
+                                                    <option value="Scheduled" {% if f.status == 'Scheduled' %}selected{% endif %}>Scheduled</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-bold">Boarding Starts Time</label>
+                                                <input type="text" name="boarding_time" class="form-control" value="{{ f.boarding_time or '' }}" placeholder="e.g. 13:50 (Auto 40m prior if blank)">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-bold text-danger"><i class="bi bi-door-closed me-1"></i>Gate Closes Time</label>
+                                                <input type="text" name="boarding_closes" class="form-control border-danger" value="{{ f.boarding_closes or '' }}" placeholder="e.g. 14:10 (Auto 20m prior if blank)">
+                                                <small class="text-muted">Standard rule: Boarding gate closes 20 mins prior to departure.</small>
+                                            </div>
+
+                                            <div class="col-12"><hr class="my-2"></div>
+
+                                            <div class="col-md-4">
+                                                <label class="form-label fw-bold">Assigned Check-in Desk</label>
+                                                <select name="checkin_counter" class="form-select">
+                                                    <option value="Check-in Counter A" {% if f.checkin_counter == 'Check-in Counter A' %}selected{% endif %}>Check-in Counter A</option>
+                                                    <option value="Check-in Counter B" {% if f.checkin_counter == 'Check-in Counter B' %}selected{% endif %}>Check-in Counter B</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label fw-bold">Assigned Security Zone</label>
+                                                <select name="security_checkpoint" class="form-select">
+                                                    <option value="Security Checkpoint 1" {% if f.security_checkpoint == 'Security Checkpoint 1' %}selected{% endif %}>Security Checkpoint 1</option>
+                                                    <option value="Security Checkpoint 2" {% if f.security_checkpoint == 'Security Checkpoint 2' %}selected{% endif %}>Security Checkpoint 2</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label fw-bold text-primary">Assigned Boarding Gate</label>
+                                                <select name="boarding_gate" class="form-select fw-bold border-primary">
+                                                    <option value="Boarding Gate A1" {% if f.boarding_gate == 'Boarding Gate A1' %}selected{% endif %}>Boarding Gate A1</option>
+                                                    <option value="Boarding Gate A5" {% if f.boarding_gate == 'Boarding Gate A5' %}selected{% endif %}>Boarding Gate A5</option>
+                                                    <option value="Boarding Gate B1" {% if f.boarding_gate == 'Boarding Gate B1' %}selected{% endif %}>Boarding Gate B1</option>
+                                                    <option value="Boarding Gate B5" {% if f.boarding_gate == 'Boarding Gate B5' %}selected{% endif %}>Boarding Gate B5</option>
+                                                </select>
+                                                <small class="text-muted">Changing gate will immediately notify active passengers.</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                        <button type="submit" class="btn btn-primary fw-bold">Save Changes</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add Flight Modal -->
+<div class="modal fade" id="addFlightModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form action="{{ url_for('add_flight') }}" method="POST">
+                <div class="modal-header bg-navy text-white" style="background-color: var(--primary-navy);">
+                    <h5 class="modal-title text-white"><i class="bi bi-plus-circle me-1"></i> Add New Flight Record</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Flight Number</label>
+                            <input type="text" name="flight_number" class="form-control" placeholder="e.g. AI202" required style="text-transform: uppercase;">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Airline</label>
+                            <input type="text" name="airline" class="form-control" placeholder="e.g. Air India" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Destination City</label>
+                            <input type="text" name="destination_city" class="form-control" placeholder="e.g. London (LHR)" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Departure Time</label>
+                            <input type="text" name="departure_time" class="form-control" placeholder="e.g. 15:45" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Flight Status</label>
+                            <select name="status" class="form-select">
+                                <option value="On Time" selected>On Time</option>
+                                <option value="Boarding">Boarding</option>
+                                <option value="Delayed">Delayed</option>
+                                <option value="Scheduled">Scheduled</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Boarding Starts Time</label>
+                            <input type="text" name="boarding_time" class="form-control" placeholder="e.g. 15:05 (Auto 40m prior if blank)">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold text-danger"><i class="bi bi-door-closed me-1"></i>Gate Closes Time</label>
+                            <input type="text" name="boarding_closes" class="form-control border-danger" placeholder="e.g. 15:25 (Auto 20m prior if blank)">
+                            <small class="text-muted">Standard rule: Boarding gate closes 20 mins prior to departure.</small>
+                        </div>
+
+                        <div class="col-12"><hr class="my-2"></div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Check-in Counter</label>
+                            <select name="checkin_counter" class="form-select">
+                                <option value="Check-in Counter A">Check-in Counter A</option>
+                                <option value="Check-in Counter B">Check-in Counter B</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Security Checkpoint</label>
+                            <select name="security_checkpoint" class="form-select">
+                                <option value="Security Checkpoint 1">Security Checkpoint 1</option>
+                                <option value="Security Checkpoint 2">Security Checkpoint 2</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Boarding Gate</label>
+                            <select name="boarding_gate" class="form-select">
+                                <option value="Boarding Gate A1">Boarding Gate A1</option>
+                                <option value="Boarding Gate A5">Boarding Gate A5</option>
+                                <option value="Boarding Gate B1">Boarding Gate B1</option>
+                                <option value="Boarding Gate B5">Boarding Gate B5</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-airport fw-bold">Create Flight</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

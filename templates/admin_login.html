@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Staff Login - {{ get_text('app_title') }}{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="airport-card p-4 shadow-lg border-0">
+                <div class="text-center mb-4">
+                    <div class="brand-icon-wrap mx-auto mb-3" style="width: 54px; height: 54px; font-size: 1.5rem;">
+                        <i class="bi bi-shield-lock-fill"></i>
+                    </div>
+                    <h3 class="fw-bold text-navy mb-1">{{ get_text('admin_login') }}</h3>
+                    <p class="text-muted small">Terminal Operations & Airport Ground Control</p>
+                </div>
+
+                <form action="{{ url_for('admin_login') }}" method="POST">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">Staff Username</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="bi bi-person text-primary"></i></span>
+                            <input type="text" name="username" class="form-control" placeholder="admin" required autofocus>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label small fw-bold text-muted">Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="bi bi-key text-primary"></i></span>
+                            <input type="password" name="password" class="form-control" placeholder="••••••••" required>
+                        </div>
+                    </div>
+
+                    <div class="d-grid mb-3">
+                        <button type="submit" class="btn btn-airport btn-lg justify-content-center">
+                            <i class="bi bi-box-arrow-in-right"></i> Authorize & Log In
+                        </button>
+                    </div>
+
+                    <div class="p-3 bg-light rounded text-center small text-muted">
+                        <i class="bi bi-info-circle-fill text-info me-1"></i> Default Mini-Project Credentials:<br>
+                        <strong>Username:</strong> <code>admin</code> &nbsp;|&nbsp; <strong>Password:</strong> <code>admin123</code>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

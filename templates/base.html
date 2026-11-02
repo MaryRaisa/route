@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="{{ current_lang }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ get_text('app_title') }}{% endblock %} | Airport Passenger Guide</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <!-- Custom Airport Theme CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <!-- HTML5 QR Code Scanner Library -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    
+    {% block head_extra %}{% endblock %}
+</head>
+<body>
+    <!-- Top Airport Status Bar -->
+    <div class="bg-dark text-white-50 py-1 px-3 d-none d-md-block" style="font-size: 0.8rem; background-color: #07101C !important;">
+        <div class="container d-flex justify-content-between align-items-center">
+            <div>
+                <i class="bi bi-airplane-engines text-info me-1"></i> <strong>TERMINAL 2 INTERNATIONAL & DOMESTIC</strong> • Live Indoor Passenger Guidance
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <span><i class="bi bi-shield-check text-success me-1"></i> Security Checkpoints Active</span>
+                <span><i class="bi bi-clock me-1"></i> <span id="live-clock">--:--:--</span></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Navigation Bar -->
+    <nav class="navbar navbar-expand-lg airport-navbar sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <span class="brand-icon-wrap">
+                    <i class="bi bi-compass-fill"></i>
+                </span>
+                <span>{{ get_text('app_title') }}</span>
+            </a>
+            
+            <button class="navbar-toggler text-white border-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#airportNav" aria-controls="airportNav" aria-expanded="false" aria-label="Toggle navigation">
+                <i class="bi bi-list text-white fs-2"></i>
+            </button>
+
+            <div class="collapse navbar-collapse" id="airportNav">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">
+                            <i class="bi bi-house-door me-1"></i> {{ get_text('home') }}
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'passenger_dashboard' %}active{% endif %}" href="{{ url_for('passenger_dashboard') }}">
+                            <i class="bi bi-person-badge me-1"></i> {{ get_text('passenger_dash') }}
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'qr_scanner' %}active{% endif %}" href="{{ url_for('qr_scanner') }}">
+                            <i class="bi bi-qr-code-scan me-1 text-info"></i> {{ get_text('qr_scanner') }}
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'generate_qr_page' %}active{% endif %}" href="{{ url_for('generate_qr_page') }}">
+                            <i class="bi bi-qr-code me-1 text-primary"></i> QR Codes
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'flight_search' %}active{% endif %}" href="{{ url_for('flight_search') }}">
+                            <i class="bi bi-search me-1"></i> {{ get_text('flight_search') }}
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'navigation_view' %}active{% endif %}" href="{{ url_for('navigation_view') }}">
+                            <i class="bi bi-map me-1"></i> {{ get_text('airport_map') }}
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- Right Side: Language Switcher & Admin Portal -->
+                <div class="d-flex align-items-center gap-2">
+                    <!-- Multilingual Language Dropdown -->
+                    <div class="dropdown">
+                        <button class="btn lang-selector-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-translate text-info"></i>
+                            {% for l in available_langs if l.code == current_lang %}
+                                <span>{{ l.flag }} {{ l.label.split(' ')[0] }}</span>
+                            {% endfor %}
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow">
+                            <li><h6 class="dropdown-header text-uppercase text-muted" style="font-size: 0.75rem;">{{ get_text('select_language') }}</h6></li>
+                            {% for l in available_langs %}
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center justify-content-between {% if l.code == current_lang %}active fw-bold{% endif %}" href="{{ url_for('set_language', lang=l.code) }}">
+                                    <span>{{ l.flag }} {{ l.label }}</span>
+                                    {% if l.code == current_lang %}<i class="bi bi-check2 text-primary"></i>{% endif %}
+                                </a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+
+                    <!-- Admin Link / Session Status -->
+                    {% if session.get('admin_user') %}
+                    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-warning btn-sm fw-bold">
+                        <i class="bi bi-speedometer2 me-1"></i> {{ get_text('admin_panel') }}
+                    </a>
+                    <a href="{{ url_for('admin_logout') }}" class="btn btn-outline-light btn-sm" title="{{ get_text('logout') }}">
+                        <i class="bi bi-box-arrow-right"></i>
+                    </a>
+                    {% else %}
+                    <a href="{{ url_for('admin_login') }}" class="btn btn-outline-light btn-sm">
+                        <i class="bi bi-shield-lock me-1"></i> Staff Login
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Global Flash Messages -->
+    <div class="container mt-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
+                        {% if category == 'success' %}<i class="bi bi-check-circle-fill me-2"></i>{% endif %}
+                        {% if category == 'danger' %}<i class="bi bi-exclamation-octagon-fill me-2"></i>{% endif %}
+                        {% if category == 'warning' %}<i class="bi bi-exclamation-triangle-fill me-2"></i>{% endif %}
+                        {% if category == 'info' %}<i class="bi bi-info-circle-fill me-2"></i>{% endif %}
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dialog="alert" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Main Content Block -->
+    <main class="flex-grow-1">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Airport Footer -->
+    <footer class="airport-footer">
+        <div class="container">
+            <div class="row g-4 mb-4">
+                <div class="col-lg-4 col-md-6">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <span class="brand-icon-wrap" style="width: 32px; height: 32px; font-size: 0.9rem;">
+                            <i class="bi bi-compass-fill"></i>
+                        </span>
+                        <span class="fw-bold text-white fs-5">{{ get_text('app_title') }}</span>
+                    </div>
+                    <p class="small text-secondary mb-3">
+                        Smart QR-based airport indoor navigation and passenger guidance system. Empowering travelers with frictionless wayfinding, gate change updates, and multilingual voice assistance.
+                    </p>
+                    <div class="badge bg-secondary text-light">Terminal Navigation v2.0 • Dijkstra Algorithm</div>
+                </div>
+
+                <div class="col-lg-2 col-md-6">
+                    <h6 class="text-white fw-bold mb-3">Quick Links</h6>
+                    <ul class="list-unstyled small d-flex flex-column gap-2">
+                        <li><a href="{{ url_for('index') }}" class="footer-link">{{ get_text('home') }}</a></li>
+                        <li><a href="{{ url_for('passenger_dashboard') }}" class="footer-link">{{ get_text('passenger_dash') }}</a></li>
+                        <li><a href="{{ url_for('qr_scanner') }}" class="footer-link">{{ get_text('qr_scanner') }}</a></li>
+                        <li><a href="{{ url_for('flight_search') }}" class="footer-link">{{ get_text('flight_search') }}</a></li>
+                        <li><a href="{{ url_for('navigation_view') }}" class="footer-link">{{ get_text('airport_map') }}</a></li>
+                    </ul>
+                </div>
+
+                <div class="col-lg-3 col-md-6">
+                    <h6 class="text-white fw-bold mb-3">Multilingual Guidance</h6>
+                    <p class="small text-secondary">
+                        Seamlessly switch between English, தமிழ் (Tamil), and हिंदी (Hindi) across all maps, turn-by-turn steps, and audio synthesis.
+                    </p>
+                    <div class="d-flex gap-2">
+                        <a href="{{ url_for('set_language', lang='en') }}" class="btn btn-sm btn-outline-secondary text-white {% if current_lang=='en' %}border-info text-info{% endif %}">EN</a>
+                        <a href="{{ url_for('set_language', lang='ta') }}" class="btn btn-sm btn-outline-secondary text-white {% if current_lang=='ta' %}border-info text-info{% endif %}">தமிழ்</a>
+                        <a href="{{ url_for('set_language', lang='hi') }}" class="btn btn-sm btn-outline-secondary text-white {% if current_lang=='hi' %}border-info text-info{% endif %}">हिंदी</a>
+                    </div>
+                </div>
+
+                <div class="col-lg-3 col-md-6">
+                    <h6 class="text-white fw-bold mb-3">Airport Staff & Admin</h6>
+                    <p class="small text-secondary">
+                        Authorized airport personnel can manage flights, update boarding gates, configure locations, and download QR codes.
+                    </p>
+                    {% if session.get('admin_user') %}
+                        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-sm btn-warning fw-bold">Admin Portal Active</a>
+                    {% else %}
+                        <a href="{{ url_for('admin_login') }}" class="btn btn-sm btn-outline-info">Staff Login Portal</a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="border-top border-secondary pt-3 text-center small text-secondary">
+                © 2026 Smart QR Guide Airport • Developed for Modern Smart Airports & Academic Mini-Projects.
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom Airport Script -->
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    
+    <script>
+        // Update live clock
+        function updateLiveClock() {
+            const clockEl = document.getElementById('live-clock');
+            if (clockEl) {
+                const now = new Date();
+                clockEl.textContent = now.toLocaleTimeString();
+            }
+        }
+        setInterval(updateLiveClock, 1000);
+        updateLiveClock();
+    </script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>
+
